@@ -31,6 +31,10 @@ contract OptimisticIsm is IInterchainSecurityModule {
 
     mapping(bytes32 => uint48) public preverifiedMessages;
 
+    event MessageQueued(bytes32 indexed messageId, uint48 readyAt);
+
+    error MessageNotReadyUntil(uint48 readyAt);
+
     uint48 public immutable optimisticWindow;
 
     constructor(uint48 _optimisticWindow) {
@@ -47,6 +51,7 @@ contract OptimisticIsm is IInterchainSecurityModule {
             "OptimisticIsm: message already preverified"
         );
         preverifiedMessages[messageId] = uint48(block.timestamp);
+        emit MessageQueued(messageId, block.timestamp + optimisticWindow);
     }
 
     function verify(
@@ -55,6 +60,11 @@ contract OptimisticIsm is IInterchainSecurityModule {
     ) external view returns (bool) {
         uint48 timestamp = preverifiedMessages[message.id()];
         require(timestamp > 0, "OptimisticIsm: message not preverified");
-        return timestamp + optimisticWindow < block.timestamp;
+
+        uint48 readyAt = timestamp + optimisticWindow;
+        if (readyAt > block.timestamp) {
+            revert MessageNotReadyUntil(readyAt);
+        }
+        return true;
     }
 }
