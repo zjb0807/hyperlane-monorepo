@@ -42,6 +42,10 @@ contract OptimisticIsm is IInterchainSecurityModule {
         uint8(IInterchainSecurityModule.Types.NULL);
 
     function verifyMessageId(bytes32 messageId) external {
+        require(
+            preverifiedMessages[messageId] == 0,
+            "OptimisticIsm: message already preverified"
+        );
         preverifiedMessages[messageId] = uint48(block.timestamp);
     }
 
