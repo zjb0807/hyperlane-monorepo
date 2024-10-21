@@ -48,7 +48,7 @@ contract OptimisticIsm is IInterchainSecurityModule {
     function verify(
         bytes calldata,
         bytes calldata message
-    ) public returns (bool) {
+    ) external view returns (bool) {
         uint48 timestamp = preverifiedMessages[message.id()];
         require(timestamp > 0, "OptimisticIsm: message not preverified");
         return timestamp + optimisticWindow < block.timestamp;
