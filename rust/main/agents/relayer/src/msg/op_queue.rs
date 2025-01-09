@@ -131,6 +131,7 @@ impl OpQueue {
             if let Err(err) = retry_req.transmitter.send(retry_response).await {
                 tracing::error!(?err, "Failed to send retry response");
             }
+            drop(retry_req.transmitter);
         }
         queue.append(&mut reprioritized_queue);
     }

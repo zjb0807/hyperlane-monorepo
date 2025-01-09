@@ -328,7 +328,7 @@ impl BaseAgent for Relayer {
             let serial_submitter = SerialSubmitter::new(
                 dest_domain.clone(),
                 receive_channel,
-                sender.clone(),
+                &sender,
                 SerialSubmitterMetrics::new(&self.core.metrics, dest_domain),
                 // Default to submitting one message at a time if there is no batch config
                 self.core.settings.chains[dest_domain.name()]

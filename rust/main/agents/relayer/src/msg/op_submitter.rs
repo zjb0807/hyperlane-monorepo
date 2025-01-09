@@ -105,7 +105,7 @@ impl SerialSubmitter {
     pub fn new(
         domain: HyperlaneDomain,
         rx: mpsc::UnboundedReceiver<QueueOperation>,
-        retry_op_transmitter: Sender<MessageRetryRequest>,
+        retry_op_transmitter: &Sender<MessageRetryRequest>,
         metrics: SerialSubmitterMetrics,
         max_batch_size: u32,
         task_monitor: TaskMonitor,
