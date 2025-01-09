@@ -9,7 +9,7 @@ const MESSAGE_RETRY_API_BASE: &str = "/message_retry";
 #[derive(Clone, Debug, new)]
 pub struct MessageRetryApi {
     retry_request_transmitter: Sender<MessageRetryRequest>,
-    relayer_chains: usize,
+    destination_chains: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -39,10 +39,10 @@ async fn retry_message(
     tracing::debug!(?retry_req_payload);
     tracing::debug!(uuid = uuid_string, "Sending message retry request");
 
-    // This channel is only created to service this single
-    // retry request so we're expecting a single response
-    // from each transmitter end, hence we are using a channel of size 1
-    let (transmitter, mut receiver) = mpsc::channel(state.relayer_chains);
+    // Create a channel that can hold each chain's SerialSubmitter
+    // message retry responses.
+    // 3 queues for each chain (prepare, submit, confirm)
+    let (transmitter, mut receiver) = mpsc::channel(3 * state.destination_chains);
     state
         .retry_request_transmitter
         .send(MessageRetryRequest {
