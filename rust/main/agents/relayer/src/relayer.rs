@@ -318,7 +318,7 @@ impl BaseAgent for Relayer {
                 }));
             tasks.push(console_server.instrument(info_span!("Tokio console server")));
         }
-        let sender = BroadcastSender::<MatchingList>::new(ENDPOINT_MESSAGES_QUEUE_SIZE);
+        let sender = BroadcastSender::new(ENDPOINT_MESSAGES_QUEUE_SIZE);
         // send channels by destination chain
         let mut send_channels = HashMap::with_capacity(self.destination_chains.len());
         let mut prep_queues = HashMap::with_capacity(self.destination_chains.len());
@@ -385,7 +385,7 @@ impl BaseAgent for Relayer {
             );
         }
         // run server
-        let custom_routes = relayer_server::Server::new()
+        let custom_routes = relayer_server::Server::new(self.origin_chains.len())
             .with_op_retry(sender.clone())
             .with_message_queue(prep_queues)
             .routes();
