@@ -36,6 +36,7 @@ async fn retry_message(
     let uuid = uuid::Uuid::new_v4();
     let uuid_string = uuid.to_string();
 
+    tracing::debug!(?retry_req_payload);
     tracing::debug!(uuid = uuid_string, "Sending message retry request");
 
     // This channel is only created to service this single
