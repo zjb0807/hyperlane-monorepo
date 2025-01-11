@@ -485,8 +485,11 @@ fn main() -> ExitCode {
     sleep(Duration::from_secs(10));
 
     // test retry request
-    let resp = server::run_retry_request().expect("Failed to process retry request");
-    assert!(resp.matched > 0);
+    let join_handle = std::thread::spawn(|| {
+        let resp = server::run_retry_request().expect("Failed to process retry request");
+        assert!(resp.matched > 0);
+    });
+    let _ = join_handle.join();
 
     if !post_startup_invariants(&checkpoints_dirs) {
         log!("Failure: Post startup invariants are not met");

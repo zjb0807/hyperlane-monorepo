@@ -25,6 +25,7 @@ eyre.workspace = true
 ethers.workspace = true
 ethers-core.workspace = true
 ethers-contract.workspace = true
+futures-util.workspace = true
 tokio.workspace = true
 maplit.workspace = true
 nix = { workspace = true, features = ["signal"], default-features = false }

@@ -12,9 +12,23 @@ pub fn run_retry_request() -> io::Result<MessageRetryResponse> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build();
-    runtime
-        .unwrap()
-        .block_on(async { call_retry_request().await })
+    runtime.unwrap().block_on(async {
+        let f1 = call_retry_request();
+        let f2 = call_retry_request();
+        let f3 = call_retry_request();
+        let f4 = call_retry_request();
+        let f5 = call_retry_request();
+
+        eprintln!("============================\nCalling Retry Request");
+        let res = futures_util::future::join_all([f1, f2, f3, f4, f5]).await;
+        eprintln!("RES: {:#?}", res);
+        eprintln!("Done\n============================\n");
+        Ok(MessageRetryResponse {
+            uuid: "0".to_string(),
+            evaluated: 100,
+            matched: 100,
+        })
+    })
 }
 
 /// sends a request to relayer to retry all existing messages
