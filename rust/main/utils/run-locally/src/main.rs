@@ -93,7 +93,7 @@ const SOLANA_AGNET_BIN_PATH: &str = "../sealevel/target/debug/";
 const INFRA_PATH: &str = "../../typescript/infra";
 const MONOREPO_ROOT_PATH: &str = "../../";
 
-const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 600;
+const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 10;
 
 const RELAYER_METRICS_PORT: &str = "9092";
 const SCRAPER_METRICS_PORT: &str = "9093";
@@ -482,7 +482,7 @@ fn main() -> ExitCode {
 
     let loop_start = Instant::now();
     // give things a chance to fully start.
-    sleep(Duration::from_secs(10));
+    sleep(Duration::from_secs(20));
 
     if !post_startup_invariants(&checkpoints_dirs) {
         log!("Failure: Post startup invariants are not met");

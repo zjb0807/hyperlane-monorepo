@@ -13,16 +13,13 @@ pub fn run_retry_request() -> io::Result<MessageRetryResponse> {
         .enable_all()
         .build();
     runtime.unwrap().block_on(async {
-        let f1 = call_retry_request();
-        let f2 = call_retry_request();
-        let f3 = call_retry_request();
-        let f4 = call_retry_request();
-        let f5 = call_retry_request();
+        for _ in 0..100 {
+            let f1 = call_retry_request().await;
+            println!("============================\nCalling Retry Request");
+            println!("~~~ RESs:\n{:#?}", f1);
+        }
 
-        eprintln!("============================\nCalling Retry Request");
-        let res = futures_util::future::join_all([f1, f2, f3, f4, f5]).await;
-        eprintln!("RES: {:#?}", res);
-        eprintln!("Done\n============================\n");
+        println!("Done\n============================\n");
         Ok(MessageRetryResponse {
             uuid: "0".to_string(),
             evaluated: 100,
@@ -40,7 +37,7 @@ async fn call_retry_request() -> io::Result<MessageRetryResponse> {
         "http://0.0.0.0:{RELAYER_METRICS_PORT}/message_retry"
     ))
     .map_err(|err| {
-        eprintln!("Failed to parse url: {err}");
+        println!("Failed to parse url: {err}");
         io::Error::new(io::ErrorKind::InvalidInput, err.to_string())
     })?;
 
@@ -48,12 +45,12 @@ async fn call_retry_request() -> io::Result<MessageRetryResponse> {
         "message_id": "*"
     })];
     let retry_response = client.post(url).json(&body).send().await.map_err(|err| {
-        eprintln!("Failed to send request: {err}");
+        println!("Failed to send request: {err}");
         io::Error::new(io::ErrorKind::InvalidData, err.to_string())
     })?;
 
     let response_text = retry_response.text().await.map_err(|err| {
-        eprintln!("Failed to parse response body: {err}");
+        println!("Failed to parse response body: {err}");
         io::Error::new(io::ErrorKind::InvalidData, err.to_string())
     })?;
 
@@ -61,7 +58,7 @@ async fn call_retry_request() -> io::Result<MessageRetryResponse> {
 
     let response_json: MessageRetryResponse =
         serde_json::from_str(&response_text).map_err(|err| {
-            eprintln!("Failed to parse response body to json: {err}");
+            println!("Failed to parse response body to json: {err}");
             io::Error::new(io::ErrorKind::InvalidData, err.to_string())
         })?;
 
