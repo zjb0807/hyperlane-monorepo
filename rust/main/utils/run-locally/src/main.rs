@@ -93,7 +93,7 @@ const SOLANA_AGNET_BIN_PATH: &str = "../sealevel/target/debug/";
 const INFRA_PATH: &str = "../../typescript/infra";
 const MONOREPO_ROOT_PATH: &str = "../../";
 
-const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 10;
+const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 600;
 
 const RELAYER_METRICS_PORT: &str = "9092";
 const SCRAPER_METRICS_PORT: &str = "9093";
@@ -484,13 +484,6 @@ fn main() -> ExitCode {
     // give things a chance to fully start.
     sleep(Duration::from_secs(10));
 
-    // test retry request
-    let join_handle = std::thread::spawn(|| {
-        let resp = server::run_retry_request().expect("Failed to process retry request");
-        assert!(resp.matched > 0);
-    });
-    let _ = join_handle.join();
-
     if !post_startup_invariants(&checkpoints_dirs) {
         log!("Failure: Post startup invariants are not met");
         return report_test_result(true);
@@ -542,6 +535,10 @@ fn main() -> ExitCode {
 
         sleep(Duration::from_secs(5));
     }
+
+    // test retry request
+    let resp = server::run_retry_request().expect("Failed to process retry request");
+    assert!(resp.matched > 0);
 
     report_test_result(failure_occurred)
 }
