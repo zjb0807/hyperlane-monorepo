@@ -51,6 +51,7 @@ mod invariants;
 mod logging;
 mod metrics;
 mod program;
+mod server;
 mod solana;
 mod utils;
 
@@ -92,7 +93,7 @@ const SOLANA_AGNET_BIN_PATH: &str = "../sealevel/target/debug/";
 const INFRA_PATH: &str = "../../typescript/infra";
 const MONOREPO_ROOT_PATH: &str = "../../";
 
-const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 10;
+const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 600;
 
 const RELAYER_METRICS_PORT: &str = "9092";
 const SCRAPER_METRICS_PORT: &str = "9093";
@@ -534,6 +535,8 @@ fn main() -> ExitCode {
 
         sleep(Duration::from_secs(5));
     }
+
+    let _ = server::run_retry_request();
 
     report_test_result(failure_occurred)
 }
