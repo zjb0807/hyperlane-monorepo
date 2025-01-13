@@ -7252,6 +7252,7 @@ dependencies = [
  "ethers-contract",
  "ethers-core",
  "eyre",
+ "futures-util",
  "hex 0.4.3",
  "hyperlane-base",
  "hyperlane-core",
