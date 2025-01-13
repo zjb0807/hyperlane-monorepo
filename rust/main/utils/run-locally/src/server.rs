@@ -13,7 +13,7 @@ pub fn run_retry_request() -> io::Result<MessageRetryResponse> {
         .enable_all()
         .build();
     runtime.unwrap().block_on(async {
-        for i in 0..100 {
+        for i in 0..5 {
             eprintln!("retry #{i}");
             let f1 = call_retry_request().await;
             println!("============================\nCalling Retry Request");

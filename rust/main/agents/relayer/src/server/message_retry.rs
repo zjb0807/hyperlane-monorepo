@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::settings::matching_list::MatchingList;
 use axum::{extract::State, routing, Json, Router};
 use derive_new::new;
@@ -8,7 +10,7 @@ const MESSAGE_RETRY_API_BASE: &str = "/message_retry";
 
 #[derive(Clone, Debug, new)]
 pub struct MessageRetryApi {
-    retry_request_transmitter: Sender<MessageRetryRequest>,
+    retry_request_transmitter: Sender<Arc<MessageRetryRequest>>,
     destination_chains: usize,
 }
 
@@ -45,11 +47,11 @@ async fn retry_message(
     let (transmitter, mut receiver) = mpsc::channel(3 * state.destination_chains);
     state
         .retry_request_transmitter
-        .send(MessageRetryRequest {
+        .send(Arc::new(MessageRetryRequest {
             uuid: uuid_string.clone(),
             pattern: retry_req_payload,
             transmitter,
-        })
+        }))
         .map_err(|err| {
             // Technically it's bad practice to print the error message to the user, but
             // this endpoint is for debugging purposes only.
@@ -105,7 +107,7 @@ mod tests {
     #[derive(Debug)]
     struct TestServerSetup {
         pub socket_address: SocketAddr,
-        pub retry_req_rx: Receiver<MessageRetryRequest>,
+        pub retry_req_rx: Receiver<Arc<MessageRetryRequest>>,
     }
 
     fn setup_test_server() -> TestServerSetup {
@@ -131,7 +133,7 @@ mod tests {
     }
 
     async fn send_retry_responses_future(
-        mut retry_request_receiver: Receiver<MessageRetryRequest>,
+        mut retry_request_receiver: Receiver<Arc<MessageRetryRequest>>,
         pending_operations: Vec<QueueOperation>,
         metrics: Vec<(usize, u64)>,
     ) {

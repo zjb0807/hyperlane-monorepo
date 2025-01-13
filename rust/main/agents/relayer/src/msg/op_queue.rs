@@ -16,7 +16,7 @@ pub type OperationPriorityQueue = Arc<Mutex<BinaryHeap<Reverse<QueueOperation>>>
 pub struct OpQueue {
     metrics: IntGaugeVec,
     queue_metrics_label: String,
-    retry_receiver: Arc<Mutex<Receiver<MessageRetryRequest>>>,
+    retry_receiver: Arc<Mutex<Receiver<Arc<MessageRetryRequest>>>>,
     #[new(default)]
     pub queue: OperationPriorityQueue,
 }
@@ -104,11 +104,6 @@ impl OpQueue {
                         if !retry_req.pattern.op_matches(&op) {
                             return;
                         }
-                        debug!(
-                            uuid = retry_req.uuid,
-                            ?op,
-                            pattern = ?retry_req.pattern, "Matched retry request");
-
                         // update retry metrics
                         retry_response.matched += 1;
                         matched = true;
@@ -131,7 +126,6 @@ impl OpQueue {
             if let Err(err) = retry_req.transmitter.send(retry_response).await {
                 tracing::error!(?err, "Failed to send retry response");
             }
-            drop(retry_req.transmitter);
         }
         queue.append(&mut reprioritized_queue);
     }
@@ -411,18 +405,18 @@ pub mod test {
 
         // Retry by message ids
         broadcaster
-            .send(MessageRetryRequest {
+            .send(Arc::new(MessageRetryRequest {
                 uuid: "0e92ace7-ba5d-4a1f-8501-51b6d9d500cf".to_string(),
                 pattern: MatchingList::with_message_id(op_ids[1]),
                 transmitter: transmitter.clone(),
-            })
+            }))
             .unwrap();
         broadcaster
-            .send(MessageRetryRequest {
+            .send(Arc::new(MessageRetryRequest {
                 uuid: "59400966-e7fa-4fb9-9372-9a671d4392c3".to_string(),
                 pattern: MatchingList::with_message_id(op_ids[2]),
                 transmitter,
-            })
+            }))
             .unwrap();
 
         // Pop elements from queue 1
@@ -482,11 +476,11 @@ pub mod test {
 
         // Retry by domain
         broadcaster
-            .send(MessageRetryRequest {
+            .send(Arc::new(MessageRetryRequest {
                 uuid: "a5b39473-7cc5-48a1-8bed-565454ba1037".to_string(),
                 pattern: MatchingList::with_destination_domain(destination_domain_2.id()),
                 transmitter,
-            })
+            }))
             .unwrap();
 
         // Pop elements from queue
@@ -542,11 +536,11 @@ pub mod test {
 
         // Retry by message ids
         broadcaster
-            .send(MessageRetryRequest {
+            .send(Arc::new(MessageRetryRequest {
                 uuid: "0e92ace7-ba5d-4a1f-8501-51b6d9d500cf".to_string(),
                 pattern: MatchingList::with_message_id(op_ids[1]),
                 transmitter: transmitter.clone(),
-            })
+            }))
             .unwrap();
 
         op_queue_1.process_retry_requests().await;
@@ -600,13 +594,13 @@ pub mod test {
 
         // Retry by message ids
         broadcaster
-            .send(MessageRetryRequest {
+            .send(Arc::new(MessageRetryRequest {
                 uuid: "0e92ace7-ba5d-4a1f-8501-51b6d9d500cf".to_string(),
                 pattern: MatchingList::with_destination_domain(
                     KnownHyperlaneDomain::Arbitrum as u32,
                 ),
                 transmitter: transmitter.clone(),
-            })
+            }))
             .unwrap();
 
         op_queue_1.process_retry_requests().await;
