@@ -11,15 +11,12 @@ pub fn run_retry_request() {
         .enable_all()
         .build();
     runtime.unwrap().block_on(async {
-        let f1 = call_retry_request();
-        let f2 = call_retry_request();
-        let f3 = call_retry_request();
-        let f4 = call_retry_request();
-        let f5 = call_retry_request();
-
-        eprintln!("============================\nCalling Retry Request");
-        let res = futures_util::future::join_all([f1, f2, f3, f4, f5]).await;
-        eprintln!("RES: {:#?}", res);
+        for i in 0..100 {
+            eprintln!("retry #{i}");
+            let f1 = call_retry_request().await;
+            println!("============================\nCalling Retry Request");
+            eprintln!("~~~ RESs:\n{:#?}", f1);
+        }
         eprintln!("Done\n============================\n");
     });
 }
