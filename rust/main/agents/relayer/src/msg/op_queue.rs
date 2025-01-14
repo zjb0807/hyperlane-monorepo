@@ -6,7 +6,7 @@ use prometheus::{IntGauge, IntGaugeVec};
 use tokio::sync::{broadcast::Receiver, Mutex};
 use tracing::{debug, instrument};
 
-use crate::server::{MessageRetryRequest, MessageRetryResponse};
+use crate::server::{MessageRetryQueueResponse, MessageRetryRequest};
 
 pub type OperationPriorityQueue = Arc<Mutex<BinaryHeap<Reverse<QueueOperation>>>>;
 
@@ -77,11 +77,9 @@ impl OpQueue {
         {
             let mut retry_receiver = self.retry_receiver.lock().await;
             while let Ok(retry_request) = retry_receiver.try_recv() {
-                let uuid = retry_request.uuid.clone();
                 message_retry_requests.push((
                     retry_request,
-                    MessageRetryResponse {
-                        uuid,
+                    MessageRetryQueueResponse {
                         evaluated: 0,
                         matched: 0,
                     },
@@ -91,43 +89,41 @@ impl OpQueue {
         if message_retry_requests.is_empty() {
             return;
         }
-        let mut queue = self.queue.lock().await;
-        let queue_length = queue.len();
 
-        let mut reprioritized_queue: BinaryHeap<_> = queue
-            .drain()
-            .map(|Reverse(mut op)| {
-                let mut matched = false;
-                message_retry_requests
-                    .iter_mut()
-                    .for_each(|(retry_req, retry_response)| {
-                        if !retry_req.pattern.op_matches(&op) {
-                            return;
-                        }
-                        // update retry metrics
-                        retry_response.matched += 1;
-                        matched = true;
-                    });
-                if matched {
-                    op.reset_attempts();
-                }
-                Reverse(op)
-            })
-            .collect();
+        let queue_length: usize;
+        {
+            let mut queue = self.queue.lock().await;
+            queue_length = queue.len();
+
+            let mut reprioritized_queue: BinaryHeap<_> = queue
+                .drain()
+                .map(|Reverse(mut op)| {
+                    let mut matched = false;
+                    message_retry_requests
+                        .iter_mut()
+                        .for_each(|(retry_req, retry_response)| {
+                            if !retry_req.pattern.op_matches(&op) {
+                                return;
+                            }
+                            // update retry metrics
+                            retry_response.matched += 1;
+                            matched = true;
+                        });
+                    if matched {
+                        op.reset_attempts();
+                    }
+                    Reverse(op)
+                })
+                .collect();
+            queue.append(&mut reprioritized_queue);
+        }
 
         for (retry_req, mut retry_response) in message_retry_requests {
             retry_response.evaluated = queue_length;
-            tracing::debug!(
-                uuid = retry_response.uuid,
-                evaluated = retry_response.evaluated,
-                matched = retry_response.matched,
-                "Sending relayer retry response back"
-            );
             if let Err(err) = retry_req.transmitter.send(retry_response).await {
                 tracing::error!(?err, "Failed to send retry response");
             }
         }
-        queue.append(&mut reprioritized_queue);
     }
 
     /// Get the metric associated with this operation
@@ -406,7 +402,7 @@ pub mod test {
         // Retry by message ids
         broadcaster
             .send(Arc::new(MessageRetryRequest {
-                uuid: "0e92ace7-ba5d-4a1f-8501-51b6d9d500cf".to_string(),
+                uuid: "59400966-e7fa-4fb9-9372-9a671d4392c3".to_string(),
                 pattern: MatchingList::with_message_id(op_ids[1]),
                 transmitter: transmitter.clone(),
             }))
@@ -531,8 +527,7 @@ pub mod test {
                 .await;
         }
 
-        let (transmitter, mut receiver) =
-            mpsc::channel::<MessageRetryResponse>(ENDPOINT_MESSAGES_QUEUE_SIZE);
+        let (transmitter, mut receiver) = mpsc::channel(ENDPOINT_MESSAGES_QUEUE_SIZE);
 
         // Retry by message ids
         broadcaster
@@ -589,8 +584,7 @@ pub mod test {
                 .await;
         }
 
-        let (transmitter, mut receiver) =
-            mpsc::channel::<MessageRetryResponse>(ENDPOINT_MESSAGES_QUEUE_SIZE);
+        let (transmitter, mut receiver) = mpsc::channel(ENDPOINT_MESSAGES_QUEUE_SIZE);
 
         // Retry by message ids
         broadcaster

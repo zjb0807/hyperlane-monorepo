@@ -18,7 +18,15 @@ pub struct MessageRetryApi {
 pub struct MessageRetryRequest {
     pub uuid: String,
     pub pattern: MatchingList,
-    pub transmitter: mpsc::Sender<MessageRetryResponse>,
+    pub transmitter: mpsc::Sender<MessageRetryQueueResponse>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct MessageRetryQueueResponse {
+    /// how many pending operations were evaluated
+    pub evaluated: usize,
+    /// how many of the pending operations matched the retry request pattern
+    pub matched: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -68,10 +76,9 @@ async fn retry_message(
     tracing::debug!(uuid = resp.uuid, "Waiting for response from relayer");
     while let Some(relayer_resp) = receiver.recv().await {
         tracing::debug!(
-            uuid = resp.uuid,
-            evaluated = resp.evaluated,
-            matched = resp.matched,
-            "Submitter response to retry request"
+            evaluated = relayer_resp.evaluated,
+            matched = relayer_resp.matched,
+            "Received relayer response"
         );
         resp.evaluated += relayer_resp.evaluated;
         resp.matched += relayer_resp.matched;
@@ -141,11 +148,7 @@ mod tests {
             for (op, (evaluated, matched)) in pending_operations.iter().zip(metrics) {
                 // Check that the list received by the server matches the pending operation
                 assert!(req.pattern.op_matches(&op));
-                let resp = MessageRetryResponse {
-                    uuid: req.uuid.clone(),
-                    evaluated,
-                    matched,
-                };
+                let resp = MessageRetryQueueResponse { evaluated, matched };
                 req.transmitter.send(resp).await.unwrap();
             }
         }
