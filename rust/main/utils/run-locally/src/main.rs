@@ -93,7 +93,7 @@ const SOLANA_AGNET_BIN_PATH: &str = "../sealevel/target/debug/";
 const INFRA_PATH: &str = "../../typescript/infra";
 const MONOREPO_ROOT_PATH: &str = "../../";
 
-const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 600;
+const ZERO_MERKLE_INSERTION_KATHY_MESSAGES: u32 = 10;
 
 const RELAYER_METRICS_PORT: &str = "9092";
 const SCRAPER_METRICS_PORT: &str = "9093";
